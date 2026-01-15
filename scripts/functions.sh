@@ -40,57 +40,82 @@ Log() {
 }
 
 download_server() {
-  LogAction "Starting server download"
-  LogInfo "Downloading Hytale Dedicated Server"
+  LogAction "Checking server version"
   
   local SERVER_FILES="/home/hytale/server-files"
   local DOWNLOADER_URL="https://downloader.hytale.com/hytale-downloader.zip"
   local DOWNLOADER_ZIP="$SERVER_FILES/hytale-downloader.zip"
   local DOWNLOADER_DIR="$SERVER_FILES/downloader"
+  local VERSION_FILE="$SERVER_FILES/.server-version"
   
   mkdir -p "$SERVER_FILES"
   cd "$SERVER_FILES" || exit 1
   
-  # Check if server files already exist
-  if [ -f "$SERVER_FILES/Server/HytaleServer.jar" ]; then
-    LogSuccess "Server files already exist, skipping download"
-    return 0
+  # Ensure we have the downloader
+  if [ ! -d "$DOWNLOADER_DIR" ] || [ -z "$(find "$DOWNLOADER_DIR" -name "hytale-downloader-linux-*" -type f)" ]; then
+    LogInfo "Downloading Hytale Downloader..."
+    wget -q "$DOWNLOADER_URL" -O "$DOWNLOADER_ZIP" || {
+      LogError "Failed to download Hytale Downloader"
+      return 1
+    }
+    
+    mkdir -p "$DOWNLOADER_DIR"
+    unzip -o -q "$DOWNLOADER_ZIP" -d "$DOWNLOADER_DIR" || {
+      LogError "Failed to extract Hytale Downloader"
+      return 1
+    }
+    rm "$DOWNLOADER_ZIP"
   fi
   
-  LogInfo "First time setup - downloading server files..."
-  
-  # Download the downloader
-  LogInfo "Downloading Hytale Downloader..."
-  wget -q "$DOWNLOADER_URL" -O "$DOWNLOADER_ZIP" || {
-    LogError "Failed to download Hytale Downloader"
-    return 1
-  }
-  
-  mkdir -p "$DOWNLOADER_DIR"
-  unzip -o -q "$DOWNLOADER_ZIP" -d "$DOWNLOADER_DIR" || {
-    LogError "Failed to extract Hytale Downloader"
-    return 1
-  }
-  
-  # Find the hytale-downloader executable (Linux version for Docker)
+  # Find the hytale-downloader executable
   DOWNLOADER_EXEC=$(find "$DOWNLOADER_DIR" -name "hytale-downloader-linux-*" -type f | head -1)
   if [ -z "$DOWNLOADER_EXEC" ]; then
-    LogError "Could not find hytale-downloader executable in downloaded archive"
-    ls -laR "$DOWNLOADER_DIR"
+    LogError "Could not find hytale-downloader executable"
     return 1
   fi
   
   chmod +x "$DOWNLOADER_EXEC"
-  rm "$DOWNLOADER_ZIP"
+  cd "$(dirname "$DOWNLOADER_EXEC")" || exit 1
+  
+  # Check latest available version
+  LogInfo "Checking latest version..."
+  local latest_version
+  latest_version=$(./$(basename "$DOWNLOADER_EXEC") -print-version)
+  
+  if [ -z "$latest_version" ]; then
+    LogError "Failed to get latest version"
+    return 1
+  fi
+  
+  LogInfo "Latest available version: $latest_version"
+  
+  # Check current installed version
+  local current_version=""
+  if [ -f "$VERSION_FILE" ]; then
+    current_version=$(cat "$VERSION_FILE")
+    LogInfo "Current installed version: $current_version"
+  fi
+  
+  # Compare versions
+  if [ -f "$SERVER_FILES/Server/HytaleServer.jar" ] && [ "$current_version" = "$latest_version" ]; then
+    LogSuccess "Server is up to date (version $latest_version)"
+    return 0
+  fi
+  
+  # Download needed
+  if [ -f "$SERVER_FILES/Server/HytaleServer.jar" ]; then
+    LogInfo "Update available: $current_version -> $latest_version"
+  else
+    LogInfo "First time setup - downloading server files..."
+  fi
   
   LogInfo "Downloading server files (this may take a while)..."
-  cd "$(dirname "$DOWNLOADER_EXEC")" || exit 1
   ./$(basename "$DOWNLOADER_EXEC") -download-path "$SERVER_FILES/game.zip" || {
     LogError "Failed to download server files"
     return 1
   }
   
-  # Check if authentication was successful by looking for credentials file
+  # Check if authentication was successful
   if [ -f "$DOWNLOADER_DIR/.hytale-downloader-credentials.json" ]; then
     LogSuccess "Hytale Authentication Successful"
   fi
@@ -104,15 +129,16 @@ download_server() {
   }
   rm game.zip
   
-  LogSuccess "Server files downloaded and extracted successfully"
-  
   # Verify files exist
   if [ ! -f "$SERVER_FILES/Server/HytaleServer.jar" ]; then
     LogError "HytaleServer.jar not found after download"
     return 1
   fi
   
-  LogSuccess "Server download completed"
+  # Save version
+  echo "$latest_version" > "$VERSION_FILE"
+  
+  LogSuccess "Server download completed (version $latest_version)"
 }
 
 # Attempt to shutdown the server gracefully
