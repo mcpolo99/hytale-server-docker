@@ -77,36 +77,42 @@ download_server() {
   chmod +x "$DOWNLOADER_EXEC"
   cd "$(dirname "$DOWNLOADER_EXEC")" || exit 1
   
-  # Check latest available version
-  LogInfo "Checking latest version..."
-  local latest_version
-  latest_version=$(./$(basename "$DOWNLOADER_EXEC") -print-version)
-  
-  if [ -z "$latest_version" ]; then
-    LogError "Failed to get latest version"
-    return 1
-  fi
-  
-  LogInfo "Latest available version: $latest_version"
-  
-  # Check current installed version
+  # Check if credentials exist (needed for version check)
+  local CREDENTIALS_FILE="$DOWNLOADER_DIR/.hytale-downloader-credentials.json"
+  local latest_version=""
   local current_version=""
-  if [ -f "$VERSION_FILE" ]; then
-    current_version=$(cat "$VERSION_FILE")
-    LogInfo "Current installed version: $current_version"
-  fi
   
-  # Compare versions
-  if [ -f "$SERVER_FILES/Server/HytaleServer.jar" ] && [ "$current_version" = "$latest_version" ]; then
-    LogSuccess "Server is up to date (version $latest_version)"
-    return 0
-  fi
-  
-  # Download needed
-  if [ -f "$SERVER_FILES/Server/HytaleServer.jar" ]; then
-    LogInfo "Update available: $current_version -> $latest_version"
+  if [ ! -f "$CREDENTIALS_FILE" ]; then
+    # First boot - no credentials yet, skip version check
+    LogInfo "First time setup - authentication required"
   else
-    LogInfo "First time setup - downloading server files..."
+    # Check latest available version
+    LogInfo "Checking latest version..."
+    latest_version=$(./$(basename "$DOWNLOADER_EXEC") -print-version)
+    
+    if [ -z "$latest_version" ]; then
+      LogError "Failed to get latest version"
+      return 1
+    fi
+    
+    LogInfo "Latest available version: $latest_version"
+    
+    # Check current installed version
+    if [ -f "$VERSION_FILE" ]; then
+      current_version=$(cat "$VERSION_FILE")
+      LogInfo "Current installed version: $current_version"
+    fi
+    
+    # Compare versions
+    if [ -f "$SERVER_FILES/Server/HytaleServer.jar" ] && [ "$current_version" = "$latest_version" ]; then
+      LogSuccess "Server is up to date (version $latest_version)"
+      return 0
+    fi
+    
+    # Download needed
+    if [ -f "$SERVER_FILES/Server/HytaleServer.jar" ]; then
+      LogInfo "Update available: $current_version -> $latest_version"
+    fi
   fi
   
   LogInfo "Downloading server files (this may take a while)..."
