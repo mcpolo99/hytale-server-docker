@@ -31,6 +31,7 @@ A Docker container for running a Hytale dedicated server with automatic download
 > - Server resource usage depends heavily on player count and view distance
 > - Higher view distances significantly increase RAM usage
 > - Hytale uses **QUIC over UDP** (not TCP) on port **5520**
+> - **ARM64/Apple Silicon supported** - The x86_64 downloader runs via QEMU emulation, while the Java server runs natively
 
 > [!IMPORTANT]
 > **First-Time Setup: Authentication Required**
@@ -117,6 +118,7 @@ You can use the following values to change the settings of the server on boot.
 | MIN_MEMORY             |                      | Minimum JVM heap size (e.g., 4G). Leave unset to omit -Xms flag                      |
 | MAX_MEMORY             | 8G                   | Maximum JVM heap size (e.g., 8G, 8192M)                                               |
 | JVM_ARGS               |                      | Custom JVM arguments (optional)                                                       |
+| PATCHLINE              | release              | Selects the patchline for the game (`release` or `pre-release`)                       |
 | DOWNLOAD_ON_START      | true                 | Automatically download/update server files on startup                                 |
 
 ## Port Configuration
@@ -192,6 +194,17 @@ docker-compose restart
 Server files are automatically updated on restart if `DOWNLOAD_ON_START=true`. To force an update:
 ```bash
 docker-compose restart
+```
+
+### Send commands to the server console
+```bash
+# Send a command to the running server
+docker exec -u hytale hytale command.sh "/auth status"
+
+# Other examples
+docker exec -u hytale hytale command.sh "/eventtitle 'Hello Indifferent Server'"
+docker exec -u hytale hytale command.sh "/kick player"
+docker exec -u hytale hytale command.sh "/op add player"
 ```
 
 ## Support

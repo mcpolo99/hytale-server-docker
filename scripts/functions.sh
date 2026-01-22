@@ -42,6 +42,15 @@ Log() {
 download_server() {
   LogAction "Checking server version"
   
+  # Check architecture and log if using QEMU
+  local ARCH=$(uname -m)
+  if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+    LogInfo "Running on ARM64 architecture"
+    LogInfo "x86_64 downloader will use QEMU emulation"
+  else
+    LogInfo "Running on $ARCH architecture"
+  fi
+  
   local SERVER_FILES="/home/hytale/server-files"
   local DOWNLOADER_URL="https://downloader.hytale.com/hytale-downloader.zip"
   local DOWNLOADER_ZIP="$SERVER_FILES/hytale-downloader.zip"
@@ -81,6 +90,16 @@ download_server() {
   local CREDENTIALS_FILE="$DOWNLOADER_DIR/.hytale-downloader-credentials.json"
   local latest_version=""
   local current_version=""
+  local PATCHLINE="${PATCHLINE:-release}"
+  local DOWNLOADER_BASENAME
+  DOWNLOADER_BASENAME="$(basename "$DOWNLOADER_EXEC")"
+  
+  # Build downloader command with patchline
+  local DOWNLOADER_CMD="./$DOWNLOADER_BASENAME"
+  if [ "$PATCHLINE" != "release" ]; then
+    DOWNLOADER_CMD="$DOWNLOADER_CMD -patchline $PATCHLINE"
+    LogInfo "Using patchline: $PATCHLINE"
+  fi
   
   if [ ! -f "$CREDENTIALS_FILE" ]; then
     # First boot - no credentials yet, skip version check
@@ -88,14 +107,12 @@ download_server() {
   else
     # Check latest available version
     LogInfo "Checking latest version..."
-    latest_version=$(./$(basename "$DOWNLOADER_EXEC") -print-version)
-    
-    if [ -z "$latest_version" ]; then
+    if latest_version=$(eval "$DOWNLOADER_CMD -print-version" 2>/dev/null) && [ -n "$latest_version" ]; then
+      LogInfo "Latest available version: $latest_version"
+    else
       LogError "Failed to get latest version"
       return 1
     fi
-    
-    LogInfo "Latest available version: $latest_version"
     
     # Check current installed version
     if [ -f "$VERSION_FILE" ]; then
@@ -116,7 +133,8 @@ download_server() {
   fi
   
   LogInfo "Downloading server files (this may take a while)..."
-  ./$(basename "$DOWNLOADER_EXEC") -download-path "$SERVER_FILES/game.zip" || {
+  cd "$(dirname "$DOWNLOADER_EXEC")" || exit 1
+  eval "$DOWNLOADER_CMD -download-path '$SERVER_FILES/game.zip'" || {
     LogError "Failed to download server files"
     return 1
   }
@@ -141,6 +159,14 @@ download_server() {
     return 1
   fi
 
+  # Get version if we don't have it yet (first boot or version check was skipped)
+  if [ -z "$latest_version" ]; then
+    cd "$(dirname "$DOWNLOADER_EXEC")" || exit 1
+    if latest_version=$(eval "$DOWNLOADER_CMD -print-version" 2>/dev/null) && [ -n "$latest_version" ]; then
+      LogInfo "Server version: $latest_version"
+    fi
+  fi
+
   # Remove outdated AOT cache only if this was an update
   if [ -n "$current_version" ] && [ "$current_version" != "$latest_version" ]; then
     if [ -f "$SERVER_FILES/Server/HytaleServer.aot" ]; then
@@ -150,9 +176,12 @@ download_server() {
   fi
 
   # Save version
-  echo "$latest_version" > "$VERSION_FILE"
-
-  LogSuccess "Server download completed (version $latest_version)"
+  if [ -n "$latest_version" ]; then
+    echo "$latest_version" > "$VERSION_FILE"
+    LogSuccess "Server download completed (version $latest_version)"
+  else
+    LogSuccess "Server download completed"
+  fi
 }
 
 # Attempt to shutdown the server gracefully

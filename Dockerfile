@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
     wget \
     ca-certificates \
+    qemu-user-static \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -35,6 +36,7 @@ ENV HOME=/home/hytale \
     AUTH_MODE=authenticated \
     ACCEPT_EARLY_PLUGINS=false \
     DOWNLOAD_ON_START=true \
+    PATCHLINE=release \
     SESSION_TOKEN="" \
     IDENTITY_TOKEN="" \
     OWNER_UUID=""

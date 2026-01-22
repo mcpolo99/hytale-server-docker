@@ -72,6 +72,7 @@ export ACCEPT_EARLY_PLUGINS
 export MIN_MEMORY
 export MAX_MEMORY
 export JVM_ARGS
+export PATCHLINE
 export SESSION_TOKEN
 export IDENTITY_TOKEN
 export OWNER_UUID
@@ -92,6 +93,7 @@ su hytale -c "export PATH=\"$PATH\" && cd /home/hytale/server && \
     MIN_MEMORY='${MIN_MEMORY}' \
     MAX_MEMORY='${MAX_MEMORY}' \
     JVM_ARGS='${JVM_ARGS}' \
+    PATCHLINE='${PATCHLINE}' \
     SESSION_TOKEN='${SESSION_TOKEN}' \
     IDENTITY_TOKEN='${IDENTITY_TOKEN}' \
     OWNER_UUID='${OWNER_UUID}' \
