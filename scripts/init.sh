@@ -1,5 +1,6 @@
 #!/bin/bash
 # shellcheck source=scripts/functions.sh
+chmod +x /home/hytale/server/*.sh
 source "/home/hytale/server/functions.sh"
 
 LogAction "Set file permissions"
