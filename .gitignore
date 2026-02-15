@@ -2,7 +2,7 @@
 .env
 
 # Server files and data
-server-files/
+server-files*/
 
 # Docker volumes
 *.log
