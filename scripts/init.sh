@@ -78,26 +78,30 @@ export IDENTITY_TOKEN
 export OWNER_UUID
 
 # Start the server as hytale user
-su hytale -c "export PATH=\"$PATH\" && cd /home/hytale/server && \
-    DEFAULT_PORT='${DEFAULT_PORT}' \
-    SERVER_NAME='${SERVER_NAME}' \
-    MAX_PLAYERS='${MAX_PLAYERS}' \
-    VIEW_DISTANCE='${VIEW_DISTANCE}' \
-    ENABLE_BACKUPS='${ENABLE_BACKUPS}' \
-    BACKUP_FREQUENCY='${BACKUP_FREQUENCY}' \
-    BACKUP_DIR='${BACKUP_DIR}' \
-    DISABLE_SENTRY='${DISABLE_SENTRY}' \
-    USE_AOT_CACHE='${USE_AOT_CACHE}' \
-    AUTH_MODE='${AUTH_MODE}' \
-    ACCEPT_EARLY_PLUGINS='${ACCEPT_EARLY_PLUGINS}' \
-    MIN_MEMORY='${MIN_MEMORY}' \
-    MAX_MEMORY='${MAX_MEMORY}' \
-    JVM_ARGS='${JVM_ARGS}' \
-    PATCHLINE='${PATCHLINE}' \
-    SESSION_TOKEN='${SESSION_TOKEN}' \
-    IDENTITY_TOKEN='${IDENTITY_TOKEN}' \
-    OWNER_UUID='${OWNER_UUID}' \
-    ./start.sh" &
+exec gosu hytale bash -c '
+export PATH="$PATH" && \
+cd /home/hytale/server && \
+DEFAULT_PORT="${DEFAULT_PORT}" \
+SERVER_NAME="${SERVER_NAME}" \
+MAX_PLAYERS="${MAX_PLAYERS}" \
+VIEW_DISTANCE="${VIEW_DISTANCE}" \
+ENABLE_BACKUPS="${ENABLE_BACKUPS}" \
+BACKUP_FREQUENCY="${BACKUP_FREQUENCY}" \
+BACKUP_DIR="${BACKUP_DIR}" \
+DISABLE_SENTRY="${DISABLE_SENTRY}" \
+USE_AOT_CACHE="${USE_AOT_CACHE}" \
+AUTH_MODE="${AUTH_MODE}" \
+ACCEPT_EARLY_PLUGINS="${ACCEPT_EARLY_PLUGINS}" \
+MIN_MEMORY="${MIN_MEMORY}" \
+MAX_MEMORY="${MAX_MEMORY}" \
+JVM_ARGS="${JVM_ARGS}" \
+PATCHLINE="${PATCHLINE}" \
+SESSION_TOKEN="${SESSION_TOKEN}" \
+IDENTITY_TOKEN="${IDENTITY_TOKEN}" \
+OWNER_UUID="${OWNER_UUID}" \
+./start.sh
+' &
+# exec gosu hytale bash -c 'cd /home/hytale/server && exec ./start.sh' & 
 
 # Process ID of su
 killpid="$!"

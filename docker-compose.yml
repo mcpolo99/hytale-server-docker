@@ -14,5 +14,6 @@ services:
       - .env
     volumes:
       - ./server-files:/home/hytale/server-files
+      - ./scripts:/home/hytale/server  # use scripts from host dir.
     stdin_open: true
     tty: true

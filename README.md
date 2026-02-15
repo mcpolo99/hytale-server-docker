@@ -215,12 +215,18 @@ docker exec -u hytale hytale command.sh "/auth status"
 docker exec -u hytale hytale command.sh "/eventtitle 'Hello Indifferent Server'"
 docker exec -u hytale hytale command.sh "/kick player"
 docker exec -u hytale hytale command.sh "/op add player"
+docker exec hytale command.sh "/eventtitle 'Hello Indifferent Server'"
 ```
 
 ### Build local image
 
 ``` bash
 docker compose build --no-cache
+docker compose up -d
+
+# runs container in sleep and detached
+docker compose run -d --rm --entrypoint sleep hytale infinity
+
 ```
 
 ## Support
