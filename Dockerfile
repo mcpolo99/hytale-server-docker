@@ -49,9 +49,21 @@ COPY branding /branding
 
 RUN mkdir -p /home/hytale/server-files && \
     chmod +x /home/hytale/server/*.sh && \
-    chown -R 1000:1000 /home/hytale
+    chown -R 1000:1000 /home/hytale && \
+    # Allow running the container as an arbitrary non-root uid (rootless, OpenShift, etc.).
+    # With 750 permissions, a non-matching uid cannot even traverse /home/hytale to reach
+    # the entrypoint or mounted volume.
+    chmod 755 /home/hytale
 
 WORKDIR /home/hytale/server
+
+# Rootless-compatible machine-id persistence
+# We cannot write to /etc or /var/lib/dbus when running as non-root.
+# Instead we make those paths symlinks to a file stored in the persistent volume.
+RUN mkdir -p /home/hytale/server-files/.machine-id /var/lib/dbus && \
+    rm -f /etc/machine-id /var/lib/dbus/machine-id && \
+    ln -s /home/hytale/server-files/.machine-id/machine-id /etc/machine-id && \
+    ln -s /home/hytale/server-files/.machine-id/dbus-machine-id /var/lib/dbus/machine-id
 
 # Health check to ensure the server is running
 HEALTHCHECK --start-period=5m \
@@ -59,4 +71,4 @@ HEALTHCHECK --start-period=5m \
             --timeout=10s \
             CMD pgrep -f "HytaleServer.jar" > /dev/null || exit 1
 
-ENTRYPOINT ["/home/hytale/server/init.sh"]
+ENTRYPOINT ["bash", "/home/hytale/server/init.sh"]

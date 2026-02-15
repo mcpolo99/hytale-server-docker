@@ -1,19 +1,36 @@
 #!/bin/bash
 # shellcheck source=scripts/functions.sh
-chmod +x /home/hytale/server/*.sh
 source "/home/hytale/server/functions.sh"
+
+# Best-effort: scripts may be bind-mounted in rootless environments where we
+# don't own the files, so chmod can fail. We'll avoid relying on +x by running
+# scripts via `bash` where needed.
+chmod +x /home/hytale/server/*.sh 2>/dev/null || true
 
 LogAction "Set file permissions"
 
-if [ -z "${PUID}" ] || [ -z "${PGID}" ]; then
-    LogWarn "PUID and PGID not set. Using default values (1000)."
-    PUID=1000
-    PGID=1000
+EUID_NOW="$(id -u)"
+
+if [ "${EUID_NOW}" = "0" ]; then
+    # Root mode: we can reconcile container user ids with host ids.
+    if [ -z "${PUID}" ] || [ -z "${PGID}" ]; then
+        LogWarn "PUID and PGID not set. Using default values (1000)."
+        PUID=1000
+        PGID=1000
+    fi
+
+    usermod -o -u "${PUID}" hytale
+    groupmod -o -g "${PGID}" hytale
+    chown -R ${PUID}:${PGID} /home/hytale/server-files /home/hytale/ 2>/dev/null || true
+else
+    # Rootless mode: we cannot change uid/gid or chown. The expectation is that
+    # the mounted volume is already writable for the current uid/gid.
+    if [ -n "${PUID}" ] || [ -n "${PGID}" ]; then
+        LogWarn "Running as non-root (uid=${EUID_NOW}); ignoring PUID/PGID and skipping usermod/groupmod/chown."
+    else
+        LogInfo "Running as non-root (uid=${EUID_NOW}); skipping permission fixes."
+    fi
 fi
-   
-usermod -o -u "${PUID}" hytale
-groupmod -o -g "${PGID}" hytale
-chown -R ${PUID}:${PGID} /home/hytale/server-files /home/hytale/
 
 cat /branding
 
@@ -32,13 +49,21 @@ if [ ! -f "$MACHINE_ID_DIR/uuid" ]; then
     echo "$MACHINE_UUID" > "$MACHINE_ID_DIR/product_uuid"
     echo "$MACHINE_UUID" > "$MACHINE_ID_DIR/uuid"
     
-    chown -R ${PUID}:${PGID} "$MACHINE_ID_DIR"
+    # Only root mode can chown; rootless can't.
+    if [ "${EUID_NOW}" = "0" ]; then
+        chown -R ${PUID}:${PGID} "$MACHINE_ID_DIR" 2>/dev/null || true
+    fi
 fi
 
-# Copy to system locations
-cp "$MACHINE_ID_DIR/machine-id" /etc/machine-id
-mkdir -p /var/lib/dbus
-cp "$MACHINE_ID_DIR/dbus-machine-id" /var/lib/dbus/machine-id
+# In rootless mode we cannot write to /etc or /var/lib/dbus.
+# The Dockerfile creates symlinks so these system paths point to the persistent
+# files in the volume.
+if [ "${EUID_NOW}" = "0" ]; then
+    # Root mode: still keep them in sync even if symlinks are removed.
+    cp "$MACHINE_ID_DIR/machine-id" /etc/machine-id 2>/dev/null || true
+    mkdir -p /var/lib/dbus
+    cp "$MACHINE_ID_DIR/dbus-machine-id" /var/lib/dbus/machine-id 2>/dev/null || true
+fi
 
 LogInfo "Machine ID configured for encrypted auth persistence"
 
@@ -79,29 +104,34 @@ export IDENTITY_TOKEN
 export OWNER_UUID
 
 # Start the server as hytale user
-exec gosu hytale bash -c '
-export PATH="$PATH" && \
-cd /home/hytale/server && \
-DEFAULT_PORT="${DEFAULT_PORT}" \
-SERVER_NAME="${SERVER_NAME}" \
-MAX_PLAYERS="${MAX_PLAYERS}" \
-VIEW_DISTANCE="${VIEW_DISTANCE}" \
-ENABLE_BACKUPS="${ENABLE_BACKUPS}" \
-BACKUP_FREQUENCY="${BACKUP_FREQUENCY}" \
-BACKUP_DIR="${BACKUP_DIR}" \
-DISABLE_SENTRY="${DISABLE_SENTRY}" \
-USE_AOT_CACHE="${USE_AOT_CACHE}" \
-AUTH_MODE="${AUTH_MODE}" \
-ACCEPT_EARLY_PLUGINS="${ACCEPT_EARLY_PLUGINS}" \
-MIN_MEMORY="${MIN_MEMORY}" \
-MAX_MEMORY="${MAX_MEMORY}" \
-JVM_ARGS="${JVM_ARGS}" \
-PATCHLINE="${PATCHLINE}" \
-SESSION_TOKEN="${SESSION_TOKEN}" \
-IDENTITY_TOKEN="${IDENTITY_TOKEN}" \
-OWNER_UUID="${OWNER_UUID}" \
-./start.sh
-' &
+if [ "${EUID_NOW}" = "0" ]; then
+    exec gosu hytale bash -c '
+    export PATH="$PATH" && \
+    cd /home/hytale/server && \
+    DEFAULT_PORT="${DEFAULT_PORT}" \
+    SERVER_NAME="${SERVER_NAME}" \
+    MAX_PLAYERS="${MAX_PLAYERS}" \
+    VIEW_DISTANCE="${VIEW_DISTANCE}" \
+    ENABLE_BACKUPS="${ENABLE_BACKUPS}" \
+    BACKUP_FREQUENCY="${BACKUP_FREQUENCY}" \
+    BACKUP_DIR="${BACKUP_DIR}" \
+    DISABLE_SENTRY="${DISABLE_SENTRY}" \
+    USE_AOT_CACHE="${USE_AOT_CACHE}" \
+    AUTH_MODE="${AUTH_MODE}" \
+    ACCEPT_EARLY_PLUGINS="${ACCEPT_EARLY_PLUGINS}" \
+    MIN_MEMORY="${MIN_MEMORY}" \
+    MAX_MEMORY="${MAX_MEMORY}" \
+    JVM_ARGS="${JVM_ARGS}" \
+    PATCHLINE="${PATCHLINE}" \
+    SESSION_TOKEN="${SESSION_TOKEN}" \
+    IDENTITY_TOKEN="${IDENTITY_TOKEN}" \
+    OWNER_UUID="${OWNER_UUID}" \
+    bash ./start.sh
+    ' &
+else
+    # Rootless: already running as the target user; start directly.
+    bash /home/hytale/server/start.sh &
+fi
 # exec gosu hytale bash -c 'cd /home/hytale/server && exec ./start.sh' & 
 
 # Process ID of su

@@ -98,6 +98,46 @@ docker run -d \
     -v ./server-files:/home/hytale/server-files \
     -it \
     indifferentbroccoli/hytale-server-docker
+
+```
+
+## Rootless / `user:` / `runAsNonRoot`
+
+This image supports running **without root** (e.g. rootless Docker, Compose `user:`, Kubernetes `runAsNonRoot`).
+
+Key differences in rootless mode:
+
+- The container **cannot** run `usermod/groupmod/chown`, so `PUID/PGID` are **ignored**.
+- Ensure the host `server-files/` directory is **owned by** (or writable by) the UID/GID you run the container as.
+- Encrypted auth persistence is supported via a persistent machine-id stored in `server-files/.machine-id/`.
+
+### Example: Docker Run (rootless)
+
+```bash
+docker run -d \
+  --restart unless-stopped \
+  --name hytale \
+  --user 1001:1001 \
+  -p 5520:5520/udp \
+  --env-file .env \
+  -v ./server-files:/home/hytale/server-files \
+  -it \
+  indifferentbroccoli/hytale-server-docker
+```
+
+### Example: Docker Compose (rootless)
+
+```yaml
+services:
+  hytale:
+    image: indifferentbroccoli/hytale-server-docker
+    user: "1001:1001"
+    ports:
+      - 5520:5520/udp
+    env_file:
+      - .env
+    volumes:
+      - ./server-files:/home/hytale/server-files
 ```
 
 ## Environment Variables

@@ -94,6 +94,9 @@ LogInfo "Starting Hytale server..."
 FIFO="/tmp/hytale_input_$$"
 mkfifo "$FIFO"
 
+# Allow sending commands via `docker exec` even when exec'ing as a different uid.
+chmod 666 "$FIFO" 2>/dev/null || true
+
 # Start the server with the fifo as stdin
 eval "$STARTUP_CMD" < "$FIFO" &
 SERVER_PID=$!

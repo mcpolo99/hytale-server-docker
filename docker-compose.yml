@@ -8,12 +8,13 @@ services:
     restart: unless-stopped
     container_name: hytale
     stop_grace_period: 30s
+    user: "1001:1001"
     ports:
       - 5520:5520/udp
     env_file:
       - .env
     volumes:
       - ./server-files:/home/hytale/server-files
-      - ./scripts:/home/hytale/server  # use scripts from host dir.
+      - ./scripts:/home/hytale/server  # use scripts from host dir. # dev only
     stdin_open: true
     tty: true
