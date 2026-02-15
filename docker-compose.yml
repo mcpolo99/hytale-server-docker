@@ -1,6 +1,9 @@
 ---
 services:
   hytale:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: indifferentbroccoli/hytale-server-docker
     restart: unless-stopped
     container_name: hytale
