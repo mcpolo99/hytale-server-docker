@@ -6,7 +6,10 @@
 [![Discord](https://img.shields.io/discord/798321161082896395?style=for-the-badge&label=Discord&labelColor=5865F2&color=6aa84f)](https://discord.gg/indifferentbroccoli)
 [![Docker Pulls](https://img.shields.io/docker/pulls/indifferentbroccoli/hytale-server-docker?style=for-the-badge&color=6aa84g)](https://hub.docker.com/r/indifferentbroccoli/hytale-server-docker)
 
-Game server hosting
+<!-- markdownlint-disable MD060 -->
+<!-- markdownlint-disable MD028 -->
+
+# Game server hosting
 
 Fast RAM, high-speed internet
 
@@ -27,6 +30,7 @@ A Docker container for running a Hytale dedicated server with automatic download
 | Storage  | 10GB    | 20GB        |
 
 > [!NOTE]
+>
 > - Hytale requires **Java 25** (included in the Docker image)
 > - Server resource usage depends heavily on player count and view distance
 > - Higher view distances significantly increase RAM usage
@@ -34,8 +38,8 @@ A Docker container for running a Hytale dedicated server with automatic download
 > - **ARM64/Apple Silicon supported** - The x86_64 downloader runs via QEMU emulation, while the Java server runs natively
 
 > [!IMPORTANT]
+>
 > **First-Time Setup: Authentication Required**
-> 
 > On first startup, you'll need to authenticate via your browser. The server will display a URL in the console - just visit it and log in with your Hytale account. You will then need to authorize again from the link that appears once the server has started.
 
 ## How to use
@@ -129,12 +133,11 @@ Hytale uses the **QUIC protocol over UDP** (not TCP). Make sure to:
 2. **Forward UDP port 5520** in your router if hosting from home
 3. Configure firewall rules for UDP only
 
-
 ## File Structure
 
 After first run, the following structure will be created in your `server-files` directory:
 
-```
+``` bash
 server-files/
 ├── Server/
 │   ├── HytaleServer.jar       # Main server executable
@@ -167,6 +170,7 @@ View distance is the primary driver for RAM usage:
 - **RAM Impact:** Higher view distances exponentially increase memory requirements
 
 Tune `MAX_MEMORY` and `VIEW_DISTANCE` based on:
+
 - Number of concurrent players
 - How spread out players are in the world
 - Available server resources
@@ -174,6 +178,7 @@ Tune `MAX_MEMORY` and `VIEW_DISTANCE` based on:
 ## Useful Commands
 
 ### View server logs
+
 ```bash
 docker logs hytale -f
 # or
@@ -181,22 +186,27 @@ docker-compose logs -f
 ```
 
 ### Stop the server
+
 ```bash
 docker-compose down
 ```
 
 ### Restart the server
+
 ```bash
 docker-compose restart
 ```
 
 ### Update server files
+
 Server files are automatically updated on restart if `DOWNLOAD_ON_START=true`. To force an update:
+
 ```bash
 docker-compose restart
 ```
 
 ### Send commands to the server console
+
 ```bash
 # Send a command to the running server
 docker exec -u hytale hytale command.sh "/auth status"
@@ -207,11 +217,16 @@ docker exec -u hytale hytale command.sh "/kick player"
 docker exec -u hytale hytale command.sh "/op add player"
 ```
 
+### Build local image
+
+``` bash
+docker compose build --no-cache
+```
+
 ## Support
 
 - [Official Hytale Server Manual](https://support.hytale.com/hc/en-us/articles/45326769420827-Hytale-Server-Manual)
 - [GitHub Issues](https://github.com/indifferentbroccoli/hytale-server-docker/issues)
-
 
 ## License
 
