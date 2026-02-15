@@ -1,0 +1,15 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Shell scripts must be LF (important for Docker/Linux)
+[*.sh]
+end_of_line = lf
+
+# Windows scripts (if you ever add .bat/.ps1) can stay CRLF
+[*.{bat,cmd,ps1}]
+end_of_line = crlf
