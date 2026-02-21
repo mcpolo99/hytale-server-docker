@@ -7,7 +7,6 @@ services:
     image: indifferentbroccoli/hytale-server-docker
     restart: unless-stopped
     container_name: hytale
-    stop_grace_period: 30s
     ports:
       - 5520:5520/udp
     # Optional runtime overrides (image has built-in defaults)
