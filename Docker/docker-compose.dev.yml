@@ -11,7 +11,7 @@ services:
       - 5520:5520/udp
     # Optional runtime overrides (image has built-in defaults)
     env_file:
-      - path: ../.env
+      - path: ../.env.example
         required: false
     # those are only neccessary for defaults, overriden by .env file
     environment:

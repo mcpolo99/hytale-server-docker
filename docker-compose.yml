@@ -16,10 +16,8 @@ services:
         required: false
     # those are only neccessary for defaults, overriden by .env file
     environment:
-      # Optional: only needed if you want the container to run as a specific UID/GID
-      # (by default the image auto-detects a good UID/GID for rootful vs rootless engines)
-      - PUID=${PUID:-1001} # your host user id
-      - PGID=${PGID:-1001} # your host group id
+      - PUID=${PUID}
+      - PGID=${PGID}
       - SERVER_NAME=${SERVER_NAME:-hytale-server-docker}
       - DEFAULT_PORT=${DEFAULT_PORT:-5520}
       - MAX_PLAYERS=${MAX_PLAYERS:-20}

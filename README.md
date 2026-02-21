@@ -234,7 +234,7 @@ these commands are made for windows if you want to run on linux (debian as ref) 
 docker compose -f .\Docker\docker-compose.dev.yml build --no-cache 
 ## linux
 docker compose -f ./Docker/docker-compose.dev.yml build --no-cache 
-
+docker compose build --no-cache 
 # run long lived container detached
 ## Windows
 docker compose -f .\Docker\docker-compose.dev.yml up -d
@@ -262,8 +262,6 @@ docker exec -it $(docker ps -aq --filter name=hytale) bash
 
 # stop short lived contaner
 docker rm -f $(docker ps -aq --filter name=hytale)
-
-
 
 ```
 
