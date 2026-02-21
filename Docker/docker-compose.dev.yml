@@ -7,7 +7,7 @@ services:
     image: indifferentbroccoli/hytale-server-docker
     restart: unless-stopped
     container_name: hytale
-    stop_grace_period: 30s
+    #stop_grace_period: 30s # for dev i dotn care bout gracefull shutdown
     ports:
       - 5520:5520/udp
     env_file:
