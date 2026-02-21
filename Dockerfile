@@ -1,11 +1,20 @@
 # BUILD THE HYTALE SERVER IMAGE
 FROM eclipse-temurin:25-jdk
 
+# ENVIRONMENT NON USER DEFINED
+ENV HOME=/home/hytale \
+    USERN=hytale 
+ENV SERVER_FILES=${HOME}/server-files SERVER_ROOT=${HOME}/server
+ENV CONFIG_DIR=${SERVER_ROOT}/hytale-config \ 
+    PATH={SERVER_ROOT}:${PATH} \
+    BACKUP_DIR=${SERVER_FILES}/backups 
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gettext-base \
     procps \
     jq \
     curl \
+    gosu \
     unzip \
     wget \
     ca-certificates \
@@ -18,40 +27,39 @@ LABEL maintainer="support@indifferentbroccoli.com" \
       github="https://github.com/indifferentbroccoli/hytale-server-docker" \
       dockerhub="https://hub.docker.com/r/indifferentbroccoli/hytale-server-docker"
 
+
+
 # Create user/group
-RUN userdel -r ubuntu 2>/dev/null || true && \
-    groupadd -g 1000 hytale && \
-    useradd -u 1000 -g 1000 -m -d /home/hytale -s /bin/bash hytale
+RUN userdel -r ubuntu 2>/dev/null || true \
+ && useradd -u 1000 -G sudo -U -m -s /bin/bash ${USERN} \
+ && echo "${USERN} ALL=(ALL) NOPASSWD: /bin/chown" >> /etc/sudoers \ 
+ && chown -R ${USERN}:${USERN} ${HOME} \
+ && chmod 755 ${HOME}
 
-ENV HOME=/home/hytale \
-    CONFIG_DIR=/hytale-config \
-    PATH=/home/hytale/server:${PATH} \
-    DEFAULT_PORT=5520 \
-    SERVER_NAME=hytale-server \
-    MAX_PLAYERS=20 \
-    VIEW_DISTANCE=12 \
-    ENABLE_BACKUPS=false \
-    BACKUP_FREQUENCY=30 \
-    BACKUP_MAX_COUNT=5 \
-    DISABLE_SENTRY=true \
-    USE_AOT_CACHE=true \
-    AUTH_MODE=authenticated \
-    ACCEPT_EARLY_PLUGINS=false \
-    DOWNLOAD_ON_START=true \
-    PATCHLINE=release \
-    SESSION_TOKEN="" \
-    IDENTITY_TOKEN="" \
-    OWNER_UUID=""
 
-COPY ./scripts /home/hytale/server/
+# RUN mkdir /home/hytale 
+RUN mkdir -p ${SERVER_ROOT} ${SERVER_FILES} ${BACKUP_DIR}
 
-COPY branding /branding
+# Copy some files
+COPY --chown=${USERN}:${USERN} ./scripts ${SERVER_ROOT}
+COPY --chown=${USERN}:${USERN} branding /branding
 
-RUN mkdir -p /home/hytale/server-files && \
-    chmod +x /home/hytale/server/*.sh && \
-    chown -R 1000:1000 /home/hytale
+# Rootless-compatible machine-id persistence
+# We cannot write to /etc or /var/lib/dbus when running as non-root.
+# Instead we make those paths symlinks to a file stored in the persistent volume.
+RUN mkdir -p ${SERVER_FILES}/.machine-id /var/lib/dbus && \
+    rm -f /etc/machine-id /var/lib/dbus/machine-id && \
+    ln -s ${SERVER_FILES}/.machine-id/machine-id /etc/machine-id && \
+    ln -s ${SERVER_FILES}/.machine-id/dbus-machine-id /var/lib/dbus/machine-id
 
-WORKDIR /home/hytale/server
+
+# RUN chmod +x /home/hytale/server/*.sh && \
+#     chown -R hytale:hytale /home/hytale
+
+    
+USER ${USERN}
+
+WORKDIR ${SERVER_ROOT}
 
 # Health check to ensure the server is running
 HEALTHCHECK --start-period=5m \

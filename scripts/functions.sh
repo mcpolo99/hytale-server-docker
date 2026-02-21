@@ -42,7 +42,9 @@ Log() {
 download_server() {
   LogAction "Checking server version"
   
-  local SERVER_FILES="/home/hytale/server-files"
+  : "${SERVER_FILES:?SERVER_FILES not set}"
+
+  # local SERVER_FILES="/home/hytale/server-files"
   local DOWNLOADER_URL="https://downloader.hytale.com/hytale-downloader.zip"
   local DOWNLOADER_ZIP="$SERVER_FILES/hytale-downloader.zip"
   local DOWNLOADER_DIR="$SERVER_FILES/downloader"
@@ -81,7 +83,7 @@ download_server() {
   local CREDENTIALS_FILE="$DOWNLOADER_DIR/.hytale-downloader-credentials.json"
   local latest_version=""
   local current_version=""
-  local PATCHLINE="${PATCHLINE:-release}"
+  : "${PATCHLINE:?PATCHLINE not set}"
   local DOWNLOADER_BASENAME
   DOWNLOADER_BASENAME="$(basename "$DOWNLOADER_EXEC")"
   

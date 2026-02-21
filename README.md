@@ -235,9 +235,17 @@ docker compose -f ./Docker/docker-compose.dev.yml down
 # run short lived container
 ## Linux 
 docker compose -f ./Docker/docker-compose.dev.yml run -d --rm --entrypoint sleep hytale infinity
+docker compose run -d --rm --entrypoint sleep hytale infinity
+docker compose run -d --rm --entrypoint "/home/hytale/server/init.sh" hytale
+
 
 # stop short lived contaner
 docker rm -f $(docker ps -aq --filter name=hytale)
+
+
+# attach to contailer
+docker exec -it $(docker ps -aq --filter name=hytale) bash
+
 
 
 ```
