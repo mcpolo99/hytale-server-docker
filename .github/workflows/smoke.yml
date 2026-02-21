@@ -1,0 +1,140 @@
+name: Container smoke test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request: {}
+
+jobs:
+  smoke:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runs_on }}
+    env:
+      IMAGE_NAME: hytale-ci:local
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux (rootful docker)
+            runs_on: ubuntu-latest
+            mode: rootful
+          - name: linux (rootless docker)
+            runs_on: ubuntu-latest
+            mode: rootless
+          # - name: windows (docker desktop)
+          #   runs_on: windows-latest
+          #   mode: windows
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      #-------------------------
+      # Rootless Docker on Linux
+      #-------------------------
+      - name: Set up rootless Docker
+        if: runner.os == 'Linux' && matrix.mode == 'rootless' && github.event_name != 'workflow_dispatch'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y uidmap slirp4netns fuse-overlayfs
+
+          curl -fsSL https://get.docker.com/rootless | sh
+          export PATH="$HOME/bin:$PATH"
+
+          export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+          mkdir -p "$XDG_RUNTIME_DIR"
+          nohup dockerd-rootless.sh >/tmp/dockerd-rootless.log 2>&1 &
+
+          export DOCKER_HOST="unix:///run/user/$(id -u)/docker.sock"
+          echo "DOCKER_HOST=unix:///run/user/$(id -u)/docker.sock" >> "$GITHUB_ENV"
+
+          for i in {1..60}; do
+            if docker info >/dev/null 2>&1; then
+              echo "Rootless docker is up"
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "Rootless docker failed to start"
+          tail -n 200 /tmp/dockerd-rootless.log || true
+          exit 1
+
+      #-------------------------
+      # Build image
+      #-------------------------
+      - name: Build image (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker version
+          docker build -t "$IMAGE_NAME" .
+
+      # - name: Build image (Windows)
+      #   if: runner.os == 'Windows'
+      #   shell: pwsh
+      #   run: |
+      #     $ErrorActionPreference = 'Stop'
+      #     docker version
+      #     docker build -t $env:IMAGE_NAME .
+
+      #-------------------------
+      # Run smoke test
+      #-------------------------
+      - name: Smoke test (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf server-files-ci
+          mkdir -p server-files-ci
+
+          docker run --rm \
+            -e CI_SMOKE_TEST=true \
+            -e DOWNLOAD_ON_START=false \
+            -e SERVER_FILES=/home/hytale/server-files \
+            -v "${PWD}/server-files-ci:/home/hytale/server-files" \
+            "$IMAGE_NAME"
+
+          test -f server-files-ci/.ci-write-test
+          test -f server-files-ci/.machine-id/machine-id
+          test -f server-files-ci/.ci-uidgid
+
+          echo "Container runtime uid:gid: $(cat server-files-ci/.ci-uidgid)"
+
+          MODE="${{ matrix.mode }}"
+          if [ "$MODE" = "rootful" ]; then
+            # Rootful docker should drop privileges, so it should not be 0:0
+            if grep -q '^0:0$' server-files-ci/.ci-uidgid; then
+              echo "Expected non-root uid:gid in rootful mode, got 0:0" >&2
+              exit 1
+            fi
+          elif [ "$MODE" = "rootless" ]; then
+            # Rootless docker should detect userns mapping and stay as container root.
+            if ! grep -q '^0:0$' server-files-ci/.ci-uidgid; then
+              echo "Expected uid:gid 0:0 in rootless mode, got $(cat server-files-ci/.ci-uidgid)" >&2
+              exit 1
+            fi
+          fi
+
+      # - name: Smoke test (Windows)
+      #   if: runner.os == 'Windows'
+      #   shell: pwsh
+      #   run: |
+      #     $ErrorActionPreference = 'Stop'
+      #     if (Test-Path server-files-ci) { Remove-Item -Recurse -Force server-files-ci }
+      #     New-Item -ItemType Directory -Path server-files-ci | Out-Null
+
+      #     docker run --rm `
+      #       -e CI_SMOKE_TEST=true `
+      #       -e DOWNLOAD_ON_START=false `
+      #       -e SERVER_FILES=/home/hytale/server-files `
+      #       -v "${{ github.workspace }}\\server-files-ci:/home/hytale/server-files" `
+      #       $env:IMAGE_NAME
+
+      #     if (!(Test-Path server-files-ci/.ci-write-test)) { throw "Missing .ci-write-test" }
+      #     if (!(Test-Path server-files-ci/.machine-id/machine-id)) { throw "Missing machine-id" }
