@@ -16,21 +16,25 @@ services:
         required: false
     # those are only neccessary for defaults, overriden by .env file
     environment:
+      # Optional: only needed if you want the container to run as a specific UID/GID
+      # (by default the image auto-detects a good UID/GID for rootful vs rootless engines)
+      - PUID=${PUID:-1001} # your host user id
+      - PGID=${PGID:-1001} # your host group id
       - SERVER_NAME=${SERVER_NAME:-hytale-server-docker}
       - DEFAULT_PORT=${DEFAULT_PORT:-5520}
       - MAX_PLAYERS=${MAX_PLAYERS:-20}
       - VIEW_DISTANCE=${VIEW_DISTANCE:-12}
       - AUTH_MODE=${AUTH_MODE:-authenticated}
-      - ENABLE_BACKUPS= ${ENABLE_BACKUPS:-false}
-      - BACKUP_FREQUENCY= ${BACKUP_FREQUENCY:-30}
-      - BACKUP_MAX_COUNT= ${BACKUP_MAX_COUNT:-5}
-      - DISABLE_SENTRY= ${DISABLE_SENTRY:-true}
-      - USE_AOT_CACHE= ${USE_AOT_CACHE:-true}
-      - ACCEPT_EARLY_PLUGINS= ${ACCEPT_EARLY_PLUGINS:-false}
-      - MIN_MEMORY= ${MIN_MEMORY:-4G}
-      - MAX_MEMORY= ${MAX_MEMORY:-8G}
-      - DOWNLOAD_ON_START= ${DOWNLOAD_ON_START:-true}
-      - PATCHLINE= ${PATCHLINE:-release}
+      - ENABLE_BACKUPS=${ENABLE_BACKUPS:-false}
+      - BACKUP_FREQUENCY=${BACKUP_FREQUENCY:-30}
+      - BACKUP_MAX_COUNT=${BACKUP_MAX_COUNT:-5}
+      - DISABLE_SENTRY=${DISABLE_SENTRY:-true}
+      - USE_AOT_CACHE=${USE_AOT_CACHE:-true}
+      - ACCEPT_EARLY_PLUGINS=${ACCEPT_EARLY_PLUGINS:-false}
+      - MIN_MEMORY=${MIN_MEMORY:-4G}
+      - MAX_MEMORY=${MAX_MEMORY:-8G}
+      - DOWNLOAD_ON_START=${DOWNLOAD_ON_START:-true}
+      - PATCHLINE=${PATCHLINE:-release}
     volumes:
       - ./server-files:/home/hytale/server-files
     stdin_open: true
