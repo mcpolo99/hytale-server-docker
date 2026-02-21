@@ -5,6 +5,8 @@
 [![GitHub Repo stars](https://img.shields.io/github/stars/indifferentbroccoli/hytale-server-docker?style=for-the-badge&color=6aa84f)](https://github.com/indifferentbroccoli/hytale-server-docker)
 [![Discord](https://img.shields.io/discord/798321161082896395?style=for-the-badge&label=Discord&labelColor=5865F2&color=6aa84f)](https://discord.gg/indifferentbroccoli)
 [![Docker Pulls](https://img.shields.io/docker/pulls/indifferentbroccoli/hytale-server-docker?style=for-the-badge&color=6aa84g)](https://hub.docker.com/r/indifferentbroccoli/hytale-server-docker)
+<!-- markdownlint-disable MD060 -->
+<!-- markdownlint-disable MD028 -->
 
 Game server hosting
 
@@ -27,6 +29,7 @@ A Docker container for running a Hytale dedicated server with automatic download
 | Storage  | 10GB    | 20GB        |
 
 > [!NOTE]
+>
 > - Hytale requires **Java 25** (included in the Docker image)
 > - Server resource usage depends heavily on player count and view distance
 > - Higher view distances significantly increase RAM usage
@@ -35,7 +38,7 @@ A Docker container for running a Hytale dedicated server with automatic download
 
 > [!IMPORTANT]
 > **First-Time Setup: Authentication Required**
-> 
+>
 > On first startup, you'll need to authenticate via your browser. The server will display a URL in the console - just visit it and log in with your Hytale account. You will then need to authorize again from the link that appears once the server has started.
 
 ## How to use
@@ -135,8 +138,7 @@ mkdir -p server-files
 chmod 755 server-files
 ```
 
-
-
+Also you can edit .env files PUID and PGID to match your host user.
 
 ## Port Configuration
 
@@ -146,12 +148,11 @@ Hytale uses the **QUIC protocol over UDP** (not TCP). Make sure to:
 2. **Forward UDP port 5520** in your router if hosting from home
 3. Configure firewall rules for UDP only
 
-
 ## File Structure
 
 After first run, the following structure will be created in your `server-files` directory:
 
-```
+``` markdown
 server-files/
 ├── Server/
 │   ├── HytaleServer.jar       # Main server executable
@@ -184,6 +185,7 @@ View distance is the primary driver for RAM usage:
 - **RAM Impact:** Higher view distances exponentially increase memory requirements
 
 Tune `MAX_MEMORY` and `VIEW_DISTANCE` based on:
+
 - Number of concurrent players
 - How spread out players are in the world
 - Available server resources
@@ -191,6 +193,7 @@ Tune `MAX_MEMORY` and `VIEW_DISTANCE` based on:
 ## Useful Commands
 
 ### View server logs
+
 ```bash
 docker logs hytale -f
 # or
@@ -198,22 +201,27 @@ docker-compose logs -f
 ```
 
 ### Stop the server
+
 ```bash
 docker-compose down
 ```
 
 ### Restart the server
+
 ```bash
 docker-compose restart
 ```
 
 ### Update server files
+
 Server files are automatically updated on restart if `DOWNLOAD_ON_START=true`. To force an update:
+
 ```bash
 docker-compose restart
 ```
 
 ### Send commands to the server console
+
 ```bash
 # Send a command to the running server
 docker exec -u hytale hytale command.sh "/auth status"
@@ -224,52 +232,10 @@ docker exec -u hytale hytale command.sh "/kick player"
 docker exec -u hytale hytale command.sh "/op add player"
 ```
 
-### DEV Build and run local docker images
-
-these commands are made for windows if you want to run on linux (debian as ref) normalize to forward slashes
-
-``` bash
-# Build local docker image
-## windows
-docker compose -f .\Docker\docker-compose.dev.yml build --no-cache 
-## linux
-docker compose -f ./Docker/docker-compose.dev.yml build --no-cache 
-docker compose build --no-cache 
-# run long lived container detached
-## Windows
-docker compose -f .\Docker\docker-compose.dev.yml up -d
-## Linux 
-docker compose -f ./Docker/docker-compose.dev.yml up -d
-
-# destroy and clear container
-# Windows
-docker compose -f .\Docker\docker-compose.dev.yml down
-# Linux
-docker compose -f ./Docker/docker-compose.dev.yml down
-
-
-# run short lived container
-## dev
-docker compose -f ./Docker/docker-compose.dev.yml run -d --rm --entrypoint sleep hytale infinity
-docker compose -f ./Docker/docker-compose.dev.yml run -d --rm --entrypoint "/home/hytale/server/init.sh" hytale
-
-## rel
-docker compose run -d --rm --entrypoint sleep hytale infinity
-docker compose run -d --rm --entrypoint "/home/hytale/server/init.sh" hytale
-
-# attach to contailer
-docker exec -it $(docker ps -aq --filter name=hytale) bash
-
-# stop short lived contaner
-docker rm -f $(docker ps -aq --filter name=hytale)
-
-```
-
 ## Support
 
 - [Official Hytale Server Manual](https://support.hytale.com/hc/en-us/articles/45326769420827-Hytale-Server-Manual)
 - [GitHub Issues](https://github.com/indifferentbroccoli/hytale-server-docker/issues)
-
 
 ## License
 
