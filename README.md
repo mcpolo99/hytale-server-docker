@@ -122,6 +122,22 @@ You can use the following values to change the settings of the server on boot.
 | PATCHLINE              | release              | Selects the patchline for the game (`release` or `pre-release`)                       |
 | DOWNLOAD_ON_START      | true                 | Automatically download/update server files on startup                                 |
 
+## Rootless Docker / file ownership
+
+- **Rootful Docker engine** (normal Docker): the container starts as root and then automatically drops privileges to match the ownership of the mounted `server-files` directory (or `PUID/PGID` if you set them). This prevents creating `root:root` files on your host.
+- **Rootless Docker engine** (`dockerd-rootless`): the container detects user-namespace mapping and stays as container root. In rootless mode, container root is mapped to *your* host user, so files created in `server-files` are owned by you.
+
+If you still run into permission issues, ensure the host directory exists and is writable by your user:
+
+```bash
+
+mkdir -p server-files
+chmod 755 server-files
+```
+
+
+
+
 ## Port Configuration
 
 Hytale uses the **QUIC protocol over UDP** (not TCP). Make sure to:
@@ -208,7 +224,7 @@ docker exec -u hytale hytale command.sh "/kick player"
 docker exec -u hytale hytale command.sh "/op add player"
 ```
 
-### Build and run local docker images
+### DEV Build and run local docker images
 
 these commands are made for windows if you want to run on linux (debian as ref) normalize to forward slashes
 
@@ -233,16 +249,16 @@ docker compose -f ./Docker/docker-compose.dev.yml down
 
 
 # run short lived container
-## Linux 
+## dev
 docker compose -f ./Docker/docker-compose.dev.yml run -d --rm --entrypoint sleep hytale infinity
 docker compose -f ./Docker/docker-compose.dev.yml run -d --rm --entrypoint "/home/hytale/server/init.sh" hytale
 
+## rel
 docker compose run -d --rm --entrypoint sleep hytale infinity
 docker compose run -d --rm --entrypoint "/home/hytale/server/init.sh" hytale
 
 # attach to contailer
 docker exec -it $(docker ps -aq --filter name=hytale) bash
-
 
 # stop short lived contaner
 docker rm -f $(docker ps -aq --filter name=hytale)

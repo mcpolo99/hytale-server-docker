@@ -35,6 +35,12 @@ LogAction "Set file permissions"
 EUID_NOW="$(id -u)"
 LogAction ${EUID_NOW}
 
+# Mark whether PUID/PGID were explicitly provided
+[ -n "${PUID+x}" ] && PUID_EXPLICIT=1 || PUID_EXPLICIT=""
+[ -n "${PGID+x}" ] && PGID_EXPLICIT=1 || PGID_EXPLICIT=""
+
+maybe_drop_privileges_and_reexec "$@"
+
 cat /branding
 
 # Set up persistent machine-id for encrypted auth
@@ -52,7 +58,11 @@ if [ ! -f "$MACHINE_ID_DIR/uuid" ]; then
     echo "$MACHINE_UUID" > "$MACHINE_ID_DIR/product_uuid"
     echo "$MACHINE_UUID" > "$MACHINE_ID_DIR/uuid"
     
-    chown -R ${PUID}:${PGID} "$MACHINE_ID_DIR"
+    # Best-effort: chown may fail under rootless userns or on bind mounts.
+    if [ "$(id -u)" -eq 0 ] && ! is_userns_rootless; then
+        detect_target_ids
+        chown -R "${PUID}:${PGID}" "$MACHINE_ID_DIR" 2>/dev/null || true
+    fi
 fi
 
 : "${DOWNLOAD_ON_START:?DOWNLOAD_ON_START not set}"
