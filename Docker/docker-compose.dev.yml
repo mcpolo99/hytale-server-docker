@@ -17,3 +17,4 @@ services:
       - ../scripts:/home/hytale/server  # use scripts from host dir. # dev only
     stdin_open: true
     tty: true
+    entrypoint: ["sleep", "infinity"]

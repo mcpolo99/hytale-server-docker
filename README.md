@@ -208,20 +208,37 @@ docker exec -u hytale hytale command.sh "/kick player"
 docker exec -u hytale hytale command.sh "/op add player"
 ```
 
-### Build local image
+### Build and run local docker images
+
+these commands are made for windows if you want to run on linux (debian as ref) normalize to forward slashes
 
 ``` bash
-# windows - Build local image
+# Build local docker image
+## windows
 docker compose -f .\Docker\docker-compose.dev.yml build --no-cache 
-# linux - Build local image
+## linux
 docker compose -f ./Docker/docker-compose.dev.yml build --no-cache 
 
+# run long lived container detached
+## Windows
+docker compose -f .\Docker\docker-compose.dev.yml up -d
+## Linux 
+docker compose -f ./Docker/docker-compose.dev.yml up -d
 
-# Windows -  runs container in sleep and detached 
-docker compose -f .\Docker\docker-compose.dev.yml run -d --rm --entrypoint sleep hytale infinity
+# destroy and clear container
+# Windows
+docker compose -f .\Docker\docker-compose.dev.yml down
+# Linux
+docker compose -f ./Docker/docker-compose.dev.yml down
 
-# Linux -  runs container in sleep and detached 
+
+# run short lived container
+## Linux 
 docker compose -f ./Docker/docker-compose.dev.yml run -d --rm --entrypoint sleep hytale infinity
+
+# stop short lived contaner
+docker rm -f $(docker ps -aq --filter name=hytale)
+
 
 ```
 
