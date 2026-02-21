@@ -208,6 +208,16 @@ docker exec -u hytale hytale command.sh "/kick player"
 docker exec -u hytale hytale command.sh "/op add player"
 ```
 
+### Build local image
+
+``` bash
+docker compose -f .\Docker\docker-compose.dev.yml build
+
+# runs container in sleep and detached
+docker compose -f .\Docker\docker-compose.dev.yml run -d --rm --entrypoint sleep hytale infinity
+
+```
+
 ## Support
 
 - [Official Hytale Server Manual](https://support.hytale.com/hc/en-us/articles/45326769420827-Hytale-Server-Manual)
