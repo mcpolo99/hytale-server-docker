@@ -12,6 +12,12 @@ jobs:
     runs-on: ${{ matrix.runs_on }}
     env:
       IMAGE_NAME: hytale-ci:local
+    # NOTE:
+    # GitHub-hosted runners cannot run real rootless Docker due to
+    # kernel + AppArmor restrictions.
+    #
+    # "rootless-compatible" simulates rootless constraints and
+    # validates container behavior accordingly.
     strategy:
       fail-fast: false
       matrix:
@@ -19,49 +25,17 @@ jobs:
           - name: linux (rootful docker)
             runs_on: ubuntu-latest
             mode: rootful
-          - name: linux (rootless docker)
+
+          - name: linux (rootless compatible)
             runs_on: ubuntu-latest
-            mode: rootless
-          # - name: windows (docker desktop)
-          #   runs_on: windows-latest
-          #   mode: windows
+            mode: rootless-compatible
+          - name: windows (docker desktop)
+            runs_on: windows-latest
+            mode: windows
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      #-------------------------
-      # Rootless Docker on Linux
-      #-------------------------
-      - name: Set up rootless Docker
-        if: runner.os == 'Linux' && matrix.mode == 'rootless' && github.event_name != 'workflow_dispatch'
-        shell: bash
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y uidmap slirp4netns fuse-overlayfs
-          export FORCE_ROOTLESS_INSTALL=1
-          curl -fsSL https://get.docker.com/rootless | sh
-          export PATH="$HOME/bin:$PATH"
-
-          export XDG_RUNTIME_DIR="/run/user/$(id -u)"
-          mkdir -p "$XDG_RUNTIME_DIR"
-          nohup dockerd-rootless.sh >/tmp/dockerd-rootless.log 2>&1 &
-
-          export DOCKER_HOST="unix:///run/user/$(id -u)/docker.sock"
-          echo "DOCKER_HOST=unix:///run/user/$(id -u)/docker.sock" >> "$GITHUB_ENV"
-
-          for i in {1..60}; do
-            if docker info >/dev/null 2>&1; then
-              echo "Rootless docker is up"
-              exit 0
-            fi
-            sleep 1
-          done
-
-          echo "Rootless docker failed to start"
-          tail -n 200 /tmp/dockerd-rootless.log || true
-          exit 1
 
       #-------------------------
       # Build image
@@ -90,33 +64,47 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
           rm -rf server-files-ci
           mkdir -p server-files-ci
 
-          docker run --rm \
-            -e CI_SMOKE_TEST=true \
-            -e DOWNLOAD_ON_START=false \
-            -e SERVER_FILES=/home/hytale/server-files \
-            -v "${PWD}/server-files-ci:/home/hytale/server-files" \
-            "$IMAGE_NAME"
+          MODE="${{ matrix.mode }}"
 
+          DOCKER_ARGS=(
+            --rm
+            -e CI_SMOKE_TEST=true
+            -e DOWNLOAD_ON_START=false
+            -e SERVER_FILES=/home/hytale/server-files
+            -v "${PWD}/server-files-ci:/home/hytale/server-files"
+          )
+
+          if [ "$MODE" = "rootless-compatible" ]; then
+            DOCKER_ARGS+=(
+              --user 0:0
+              --cap-drop=ALL
+              --security-opt=no-new-privileges
+            )
+          fi
+
+          docker run "${DOCKER_ARGS[@]}" "$IMAGE_NAME"
+
+          # ---- Assertions ----
           test -f server-files-ci/.ci-write-test
           test -f server-files-ci/.machine-id/machine-id
           test -f server-files-ci/.ci-uidgid
 
           echo "Container runtime uid:gid: $(cat server-files-ci/.ci-uidgid)"
 
-          MODE="${{ matrix.mode }}"
           if [ "$MODE" = "rootful" ]; then
-            # Rootful docker should drop privileges, so it should not be 0:0
+            # Rootful docker should drop privileges
             if grep -q '^0:0$' server-files-ci/.ci-uidgid; then
               echo "Expected non-root uid:gid in rootful mode, got 0:0" >&2
               exit 1
             fi
-          elif [ "$MODE" = "rootless" ]; then
-            # Rootless docker should detect userns mapping and stay as container root.
+          elif [ "$MODE" = "rootless-compatible" ]; then
+            # Rootless containers see themselves as uid 0
             if ! grep -q '^0:0$' server-files-ci/.ci-uidgid; then
-              echo "Expected uid:gid 0:0 in rootless mode, got $(cat server-files-ci/.ci-uidgid)" >&2
+              echo "Expected uid:gid 0:0 in rootless-compatible mode, got $(cat server-files-ci/.ci-uidgid)" >&2
               exit 1
             fi
           fi
