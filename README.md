@@ -211,10 +211,17 @@ docker exec -u hytale hytale command.sh "/op add player"
 ### Build local image
 
 ``` bash
-docker compose -f .\Docker\docker-compose.dev.yml build
+# windows - Build local image
+docker compose -f .\Docker\docker-compose.dev.yml build --no-cache 
+# linux - Build local image
+docker compose -f ./Docker/docker-compose.dev.yml build --no-cache 
 
-# runs container in sleep and detached
+
+# Windows -  runs container in sleep and detached 
 docker compose -f .\Docker\docker-compose.dev.yml run -d --rm --entrypoint sleep hytale infinity
+
+# Linux -  runs container in sleep and detached 
+docker compose -f ./Docker/docker-compose.dev.yml run -d --rm --entrypoint sleep hytale infinity
 
 ```
 
