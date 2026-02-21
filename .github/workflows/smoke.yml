@@ -74,13 +74,13 @@ jobs:
           docker version
           docker build -t "$IMAGE_NAME" .
 
-      # - name: Build image (Windows)
-      #   if: runner.os == 'Windows'
-      #   shell: pwsh
-      #   run: |
-      #     $ErrorActionPreference = 'Stop'
-      #     docker version
-      #     docker build -t $env:IMAGE_NAME .
+      - name: Build image (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          docker version
+          docker build -t $env:IMAGE_NAME .
 
       #-------------------------
       # Run smoke test
@@ -121,20 +121,20 @@ jobs:
             fi
           fi
 
-      # - name: Smoke test (Windows)
-      #   if: runner.os == 'Windows'
-      #   shell: pwsh
-      #   run: |
-      #     $ErrorActionPreference = 'Stop'
-      #     if (Test-Path server-files-ci) { Remove-Item -Recurse -Force server-files-ci }
-      #     New-Item -ItemType Directory -Path server-files-ci | Out-Null
+      - name: Smoke test (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (Test-Path server-files-ci) { Remove-Item -Recurse -Force server-files-ci }
+          New-Item -ItemType Directory -Path server-files-ci | Out-Null
 
-      #     docker run --rm `
-      #       -e CI_SMOKE_TEST=true `
-      #       -e DOWNLOAD_ON_START=false `
-      #       -e SERVER_FILES=/home/hytale/server-files `
-      #       -v "${{ github.workspace }}\\server-files-ci:/home/hytale/server-files" `
-      #       $env:IMAGE_NAME
+          docker run --rm `
+            -e CI_SMOKE_TEST=true `
+            -e DOWNLOAD_ON_START=false `
+            -e SERVER_FILES=/home/hytale/server-files `
+            -v "${{ github.workspace }}\\server-files-ci:/home/hytale/server-files" `
+            $env:IMAGE_NAME
 
-      #     if (!(Test-Path server-files-ci/.ci-write-test)) { throw "Missing .ci-write-test" }
-      #     if (!(Test-Path server-files-ci/.machine-id/machine-id)) { throw "Missing machine-id" }
+          if (!(Test-Path server-files-ci/.ci-write-test)) { throw "Missing .ci-write-test" }
+          if (!(Test-Path server-files-ci/.machine-id/machine-id)) { throw "Missing machine-id" }
